@@ -6,45 +6,161 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 13:55:15 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 14:55:51 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 16:46:29 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 # include "janus.h"
 
-int	init_process(void)
+int	deinit_process(struct s_janus_data *data)
 {
-	if (DEV_Module_Init() != 0)
+	if (data == NULL)
+		return (1);
+	if (data->netlink_socket && data->netlink_socket != -1)
+		close(data->netlink_socket);
+	if (data->epoll_fd && data->epoll_fd != -1)
+		close(data->epoll_fd);
+	if (data->signal_fd && data->signal_fd != -1)
+		close(data->signal_fd);
+	if (data->event_fd && data->event_fd != -1)
+		close(data->event_fd);
+	EPD_2in13_V4_Sleep();
+	DEV_Module_Exit();
+	return (0);
+}
+
+int	setup_netlink_socket(struct s_janus_data *data)
+{
+	struct sockaddr_nl addr;
+
+	data->netlink_socket = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+	if (data->netlink_socket == -1)
 	{
-		dprintf(STDERR_FILENO, "Failed to initialize the hardware module\n");
+		perror("socket");
 		return (1);
 	}
+
+	memset(&addr, 0, sizeof(addr));
+	addr.nl_family = AF_NETLINK;
+	addr.nl_groups = RTMGRP_IPV4_IFADDR;
+
+	if (bind(data->netlink_socket, (struct sockaddr *)&addr, sizeof(addr)) == -1)
+	{
+		perror("bind netlink socket");
+		close(data->netlink_socket);
+		return (1);
+	}
+
+	return (0);
+}
+
+int	setup_signal_fd(struct s_janus_data *data)
+{
+	sigset_t mask;
+
+	sigemptyset(&mask);
+	sigaddset(&mask, SIGINT);
+	sigaddset(&mask, SIGUSR1);
+	sigaddset(&mask, SIGUSR2);
+	if (pthread_sigmask(SIG_BLOCK, &mask, NULL) == -1)
+	{
+		perror("pthread_sigmask");
+		return (1);
+	}
+	data->signal_fd = signalfd(-1, &mask, 0);
+	if (data->signal_fd == -1)
+	{
+		perror("signalfd");
+		return (1);
+	}
+	return (0);
+}
+
+int	setup_event_fd(struct s_janus_data *data)
+{
+	data->event_fd = eventfd(0, EFD_NONBLOCK);
+	return (0);
+}
+
+int	setup_epoll(struct s_janus_data *data)
+{
+	data->epoll_fd = epoll_create1(0);
+	if (data->epoll_fd == -1)
+	{
+		perror("epoll_create1");
+		return (1);
+	}
+	return (0);
+}
+
+int	register_epoll_events(struct s_janus_data *data)
+{
+	struct epoll_event event;
+
+	event.events = EPOLLIN;
+	event.data.fd = data->netlink_socket;
+	if (epoll_ctl(data->epoll_fd, EPOLL_CTL_ADD, data->netlink_socket, &event) == -1)
+	{
+		perror("epoll_ctl: netlink_socket");
+		return (1);
+	}
+	event.events = EPOLLIN;
+	event.data.fd = data->signal_fd;
+	if (epoll_ctl(data->epoll_fd, EPOLL_CTL_ADD, data->signal_fd, &event) == -1)
+	{
+		perror("epoll_ctl: signal_fd");
+		return (1);
+	}
+	event.events = EPOLLIN;
+	event.data.fd = data->event_fd;
+	if (epoll_ctl(data->epoll_fd, EPOLL_CTL_ADD, data->event_fd, &event) == -1)
+	{
+		perror("epoll_ctl: event_fd");
+		return (1);
+	}
+	return (0);
+}
+
+int	init_process(struct s_janus_data *data)
+{
+	// Init the hardware
+	if (DEV_Module_Init() != 0)
+	{
+		dprintf(STDERR_FILENO, "Failed to initialize hardware module\n");
+		return (1);
+	}
+	// Init the e-paper display
 	EPD_2in13_V4_Init();
+	// Clear the display
 	EPD_2in13_V4_Clear();
+	memset(data, 0, sizeof(struct s_janus_data));
+	if (setup_netlink_socket(data))
+		return (1);
+	if (setup_signal_fd(data))
+		return (1);
+	if (setup_event_fd(data))
+		return (1);
+	if (setup_epoll(data))
+		return (1);
+	if (regiset_epoll_events(data))
+		return (1);
+	// Scan for existing interface addresses before starting event loop
+	if (scan_existing_interfaces(data))
+		return (1);
 	return (0);
 }
 
 int main()
 {
-	UBYTE	*image;
+	struct s_janus_data	janus_data;
 
-	if (init_process() != 0)
+	memset(&janus_data, 0, sizeof(janus_data));
+	if (init_process(&janus_data) != 0)
 	{
-		dprintf(STDERR_FILENO, "Failed to initialize e-paper display\n");
+		deinit_process(&janus_data);
 		return (1);
 	}
-	image = calloc(EPD_2in13_V4_WIDTH / 8 * EPD_2in13_V4_HEIGHT, sizeof(UBYTE));
-	if (image == NULL)
-	{
-		dprintf(STDERR_FILENO, "Failed to allocate memory for image buffer\n");
-		return (1);
-	}
-	Paint_NewImage(image, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, ROTATE_270, WHITE);
-	Paint_Clear(WHITE);
-	Paint_DrawChar(10, 10, 'A', &Font24, BLACK, WHITE);
-	EPD_2in13_V4_Display(image);
-	// free(image);
-	EPD_2in13_V4_Sleep();
-	DEV_Module_Exit();
+	janus_run(&janus_data);
+	deinit_process(&janus_data);
 	return (0);
 }

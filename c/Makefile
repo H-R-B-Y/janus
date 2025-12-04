@@ -20,6 +20,11 @@ SRC_DIR			:= ./src
 
 SRCS			:= \
 				./src/main.c \
+				./src/janus/janus_run.c \
+				./src/janus/scan_existing_interfaces.c \
+				./src/event_handlers/handle_net_event.c \
+				./src/event_handlers/handle_signal_event.c \
+				./src/event_handlers/handle_event_fd_event.c \
 				\
 
 

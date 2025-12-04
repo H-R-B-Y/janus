@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 13:55:15 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 17:49:51 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 17:55:44 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -127,6 +127,7 @@ int	register_epoll_events(struct s_janus_data *data)
 
 int	init_process(struct s_janus_data *data)
 {
+	memset(data, 0, sizeof(struct s_janus_data));
 #ifndef JANUS_TERMINAL_MODE
 	// Init the hardware
 	if (DEV_Module_Init() != 0)
@@ -145,7 +146,6 @@ int	init_process(struct s_janus_data *data)
 #else
 	printf("Janus: Starting in terminal mode\n");
 #endif
-	memset(data, 0, sizeof(struct s_janus_data));
 	if (setup_netlink_socket(data))
 		return (1);
 	if (setup_signal_fd(data))

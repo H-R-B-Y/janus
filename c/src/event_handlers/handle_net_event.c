@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 15:28:40 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 17:18:55 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 18:06:47 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -134,6 +134,7 @@ int	handle_net_event(struct s_janus_data *data, struct epoll_event *event)
 	char			*dynamic_buffer;
 	ssize_t			len;
 	struct nlmsghdr	*nlh;
+	size_t			msg_len;
 
 	len = recv(event->data.fd, initial_buffer, sizeof(initial_buffer), MSG_PEEK);
 	if (len == -1)
@@ -144,16 +145,28 @@ int	handle_net_event(struct s_janus_data *data, struct epoll_event *event)
 		return (1);
 	}
 	nlh = (struct nlmsghdr *)initial_buffer;
-	dynamic_buffer = malloc(nlh->nlmsg_len);
+	
+	// Validate message length to prevent invalid malloc
+	msg_len = nlh->nlmsg_len;
+	if (msg_len < sizeof(struct nlmsghdr) || msg_len > 65536)
+	{
+		fprintf(stderr, "Invalid netlink message length: %zu\n", msg_len);
+		// Consume the invalid message to prevent infinite loop
+		char discard[4096];
+		recv(event->data.fd, discard, sizeof(discard), 0);
+		return (1);
+	}
+	
+	dynamic_buffer = malloc(msg_len);
 	if (dynamic_buffer == NULL)
 		return (perror("malloc"), 1);
-	len = recv(event->data.fd, dynamic_buffer, nlh->nlmsg_len, 0);
+	len = recv(event->data.fd, dynamic_buffer, msg_len, 0);
 	if (len == -1)
 		return (perror("recv"),free(dynamic_buffer),1);
-	else if (len < (ssize_t)nlh->nlmsg_len)
+	else if (len < (ssize_t)msg_len)
 	{
-		fprintf(stderr, "Received incomplete netlink message (%zd of %u bytes)\n", 
-				len, nlh->nlmsg_len);
+		fprintf(stderr, "Received incomplete netlink message (%zd of %zu bytes)\n", 
+				len, msg_len);
 		return (free(dynamic_buffer), 1);
 	}
 	if (process_netlink_messages(data, dynamic_buffer, len))

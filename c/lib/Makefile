@@ -16,6 +16,7 @@ LIB_GUI = $(DIR_LIB)/libgui.a
 LIB_FONTS = $(DIR_LIB)/libfonts.a
 LIB_CONFIG = $(DIR_LIB)/libconfig.a
 
+
 # Compiler settings
 CC = gcc
 CFLAGS = -g -O -ffunction-sections -fdata-sections -Wall -fPIC

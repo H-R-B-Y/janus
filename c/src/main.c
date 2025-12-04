@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 13:55:15 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 14:02:02 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 14:06:49 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,7 +28,7 @@ int main()
 		dprintf(STDERR_FILENO, "Failed to initialize e-paper display\n");
 		return (1);
 	}
-	image = ft_calloc(EPD_2in13_V4_WIDTH / 8 * EPD_2in13_V4_HEIGHT, sizeof(UBYTE));
+	image = calloc(EPD_2in13_V4_WIDTH / 8 * EPD_2in13_V4_HEIGHT, sizeof(UBYTE));
 	if (image == NULL)
 	{
 		dprintf(STDERR_FILENO, "Failed to allocate memory for image buffer\n");

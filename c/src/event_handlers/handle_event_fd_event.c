@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 16:03:59 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 16:38:16 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 17:13:45 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,9 +16,11 @@ int	handle_event_fd_event(struct s_janus_data *data, struct epoll_event *event)
 {
 	uint64_t	event_count;
 	ssize_t		s;
+#ifndef JANUS_TERMINAL_MODE
 	UBYTE		*image_buffer;//[EPD_2in13_V4_WIDTH / 8 * EPD_2in13_V4_HEIGHT];
 	uint16_t	offset;
 	sFONT		*font_select = &Font12;
+#endif
 
 	s = read(event->data.fd, &event_count, sizeof(event_count));
 	if (s != sizeof(event_count))
@@ -26,6 +28,7 @@ int	handle_event_fd_event(struct s_janus_data *data, struct epoll_event *event)
 		perror("read event_fd");
 		return (1);
 	}
+#ifndef JANUS_TERMINAL_MODE
 	offset = 0;
 	image_buffer = calloc(EPD_2in13_V4_WIDTH / 8 * EPD_2in13_V4_HEIGHT, sizeof(UBYTE));
 	if (image_buffer == NULL)
@@ -33,13 +36,18 @@ int	handle_event_fd_event(struct s_janus_data *data, struct epoll_event *event)
 		perror("calloc image_buffer");
 		return (1);
 	}
+#endif
 	if (data->interface_status == 0)
 	{
 		// We just gonna draw some stuff to show no network
+#ifdef JANUS_TERMINAL_MODE
+		printf("Janus: No network interfaces are up\n");
+#endif
 	}
 	else
 	{
 		// We want to draw the current IP addresses on the display
+#ifndef JANUS_TERMINAL_MODE
 		Paint_NewImage(image_buffer, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, 0, WHITE);
 		Paint_Clear(WHITE);
 
@@ -59,7 +67,20 @@ int	handle_event_fd_event(struct s_janus_data *data, struct epoll_event *event)
 		}
 		EPD_2in13_V4_Display(image_buffer);
 		EPD_2in13_V4_Sleep();
+#else
+		printf("Janus: Network interfaces status:\n");
+		if (is_interface_up(data->interface_status, JAN_ETH0))
+		{
+			printf("  ETH0: %s\n", data->eth0_interface);
+		}
+		if (is_interface_up(data->interface_status, JAN_WLAN0))
+		{
+			printf("  WLAN0: %s\n", data->wlan0_interface);
+		}
+#endif
 	}
+#ifndef JANUS_TERMINAL_MODE
 	free(image_buffer);
+#endif
 	return (0);
 }

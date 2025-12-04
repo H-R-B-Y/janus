@@ -3,16 +3,21 @@ CC				= gcc
 
 CFLAGS			= -g3 -O -ffunction-sections -fdata-sections -Wall -Wextra -Werror -fPIC
 
+# Check if TERMINAL_MODE is defined
+ifdef TERMINAL_MODE
+CFLAGS			+= -DJANUS_TERMINAL_MODE
+LIBFLAGS		:= -lm
+INCLUDES		:= -I./include
+else
 # gcc src/main.c -I./lib/Config -I./lib/GUI -I./lib/Fonts -I./lib/e-Paper -I include -I lib -L lib -lepd_2in13_v4 -lgui -lfonts -lconfig -llgpio -lm 
+LIBFLAGS		:= -L lib -lepd_2in13_v4 -lgui -lfonts -lconfig -llgpio -lm
+INCLUDES		:= -I./include -I./lib/Config -I./lib/GUI -I./lib/Fonts -I./lib/e-Paper
+endif
 
 # Flags for mlx because it needs to be compiled with specific flags for distro compatibility
 EPDFLAGS		:=  -g -O -ffunction-sections -fdata-sections -Wall -fPIC
 
 MAKEFLAGS		+= --no-print-directory
-
-LIBFLAGS		:= -L lib -lepd_2in13_v4 -lgui -lfonts -lconfig -llgpio -lm
-
-INCLUDES		:= -I./include -I./lib/Config -I./lib/GUI -I./lib/Fonts -I./lib/e-Paper
 
 LIB_DIR			:= ./lib
 
@@ -37,12 +42,17 @@ OBJS			:= $(BIN:.bin=.o) ${SRCS:.c=.o}
 
 all: $(NAME)
 
-$(NAME): ./lib/libconfig.a $(OBJS)
-		$(CC) $(CFLAGS) $(INCLUDES) $(MAIN) $(OBJS) $(LIBFLAGS) -o $(NAME)
-
-./lib/libconfig.a:
+$(NAME): $(OBJS)
+ifdef TERMINAL_MODE
+		$(CC) $(CFLAGS) $(INCLUDES) $(OBJS) $(LIBFLAGS) -o $(NAME)
+else
 		$(MAKE) --directory ./lib/ clean
 		$(MAKE) --directory ./lib/
+		$(CC) $(CFLAGS) $(INCLUDES) $(OBJS) $(LIBFLAGS) -o $(NAME)
+endif
+
+terminal: 
+		$(MAKE) TERMINAL_MODE=1
 
 %.o: %.c
 		@$(CC) $(CFLAGS) -o $@ -c $< $(INCLUDES)

@@ -6,11 +6,12 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 15:28:40 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 16:41:22 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 17:18:55 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 # include "janus.h"
+# include <arpa/inet.h>
 
 /*
 Here we have been pinged from the netlink socket.
@@ -47,6 +48,9 @@ int	new_address_handler(struct s_janus_data *data, struct nlmsghdr *nlh)
 				strncpy(data->wlan0_interface, ip_str, INET_ADDRSTRLEN - 1);
 				data->wlan0_interface[INET_ADDRSTRLEN - 1] = '\0';
 				mark_interface_up(&data->interface_status, JAN_WLAN0);
+#ifdef JANUS_TERMINAL_MODE
+				printf("Janus: WLAN0 interface up with IP: %s\n", ip_str);
+#endif
 				eventfd_write(data->event_fd, 1);
 			}
 			else if (strcmp(ifname, "eth0") == 0)
@@ -54,6 +58,9 @@ int	new_address_handler(struct s_janus_data *data, struct nlmsghdr *nlh)
 				strncpy(data->eth0_interface, ip_str, INET_ADDRSTRLEN - 1);
 				data->eth0_interface[INET_ADDRSTRLEN - 1] = '\0';
 				mark_interface_up(&data->interface_status, JAN_ETH0);
+#ifdef JANUS_TERMINAL_MODE
+				printf("Janus: ETH0 interface up with IP: %s\n", ip_str);
+#endif
 				eventfd_write(data->event_fd, 1);
 			}
 		}
@@ -77,12 +84,18 @@ int	del_address_handler(struct s_janus_data *data, struct nlmsghdr *nlh)
 	{
 		memset(data->wlan0_interface, 0, INET_ADDRSTRLEN);
 		mark_interface_down(&data->interface_status, JAN_WLAN0);
+#ifdef JANUS_TERMINAL_MODE
+		printf("Janus: WLAN0 interface down\n");
+#endif
 		eventfd_write(data->event_fd, 1);
 	}
 	else if (strcmp(ifname, "eth0") == 0)
 	{
 		memset(data->eth0_interface, 0, INET_ADDRSTRLEN);
 		mark_interface_down(&data->interface_status, JAN_ETH0);
+#ifdef JANUS_TERMINAL_MODE
+		printf("Janus: ETH0 interface down\n");
+#endif
 		eventfd_write(data->event_fd, 1);
 	}
 	return (0);
@@ -120,7 +133,6 @@ int	handle_net_event(struct s_janus_data *data, struct epoll_event *event)
 	char			initial_buffer[sizeof(struct nlmsghdr)];
 	char			*dynamic_buffer;
 	ssize_t			len;
-	ssize_t			remaining;
 	struct nlmsghdr	*nlh;
 
 	len = recv(event->data.fd, initial_buffer, sizeof(initial_buffer), MSG_PEEK);
@@ -138,7 +150,7 @@ int	handle_net_event(struct s_janus_data *data, struct epoll_event *event)
 	len = recv(event->data.fd, dynamic_buffer, nlh->nlmsg_len, 0);
 	if (len == -1)
 		return (perror("recv"),free(dynamic_buffer),1);
-	else if (len < nlh->nlmsg_len)
+	else if (len < (ssize_t)nlh->nlmsg_len)
 	{
 		fprintf(stderr, "Received incomplete netlink message (%zd of %u bytes)\n", 
 				len, nlh->nlmsg_len);

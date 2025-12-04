@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 16:13:11 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 16:14:08 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 17:13:45 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,6 +16,8 @@ int handle_signal_event(struct s_janus_data *data, struct epoll_event *event)
 {
 	struct signalfd_siginfo	fdsi;
 	ssize_t					s;
+
+	(void)event; // Silence unused parameter warning
 
 	s = read(data->signal_fd, &fdsi, sizeof(fdsi));
 	if (s != sizeof(fdsi))

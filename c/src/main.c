@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 13:55:15 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 16:46:29 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 17:14:14 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,8 +24,12 @@ int	deinit_process(struct s_janus_data *data)
 		close(data->signal_fd);
 	if (data->event_fd && data->event_fd != -1)
 		close(data->event_fd);
+#ifndef JANUS_TERMINAL_MODE
 	EPD_2in13_V4_Sleep();
 	DEV_Module_Exit();
+#else
+	printf("Janus: Cleaning up (terminal mode)\n");
+#endif
 	return (0);
 }
 
@@ -78,7 +82,7 @@ int	setup_signal_fd(struct s_janus_data *data)
 
 int	setup_event_fd(struct s_janus_data *data)
 {
-	data->event_fd = eventfd(0, EFD_NONBLOCK);
+	data->event_fd = eventfd(1, EFD_NONBLOCK);
 	return (0);
 }
 
@@ -123,6 +127,7 @@ int	register_epoll_events(struct s_janus_data *data)
 
 int	init_process(struct s_janus_data *data)
 {
+#ifndef JANUS_TERMINAL_MODE
 	// Init the hardware
 	if (DEV_Module_Init() != 0)
 	{
@@ -133,6 +138,9 @@ int	init_process(struct s_janus_data *data)
 	EPD_2in13_V4_Init();
 	// Clear the display
 	EPD_2in13_V4_Clear();
+#else
+	printf("Janus: Starting in terminal mode\n");
+#endif
 	memset(data, 0, sizeof(struct s_janus_data));
 	if (setup_netlink_socket(data))
 		return (1);
@@ -142,7 +150,7 @@ int	init_process(struct s_janus_data *data)
 		return (1);
 	if (setup_epoll(data))
 		return (1);
-	if (regiset_epoll_events(data))
+	if (register_epoll_events(data))
 		return (1);
 	// Scan for existing interface addresses before starting event loop
 	if (scan_existing_interfaces(data))

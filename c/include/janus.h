@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 13:55:27 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 16:44:17 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 17:13:45 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,11 +33,13 @@
 # define INET_ADDRSTRLEN 16
 # endif
 
+// Conditional compilation for e-paper display support
+#ifndef JANUS_TERMINAL_MODE
 # include "DEV_Config.h"      // For hardware initialization
 # include "EPD_2in13_V4.h"    // For display functions
 # include "GUI_Paint.h"       // For drawing functions
-
 # include "fonts.h"          // For font structures and definitions
+#endif
 
 # include <stdio.h>
 # include <stdlib.h>
@@ -90,7 +92,7 @@ static inline void	mark_interface_down(int *status, enum e_interface_status inte
 
 struct s_janus_data
 {
-	enum e_interface_status	interface_status;
+	int	interface_status;
 	// We need somewhere to store the IP addresses
 	char	wlan0_interface[INET_ADDRSTRLEN];
 	char	eth0_interface[INET_ADDRSTRLEN];

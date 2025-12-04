@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 16:03:59 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 17:54:20 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 18:14:01 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -28,6 +28,7 @@ int	handle_event_fd_event(struct s_janus_data *data, struct epoll_event *event)
 	offset = 0;
 	if (data->image_buffer == NULL)
 		return (fprintf(stderr, "Image buffer is NULL\n"), 1);
+	Paint_Clear(WHITE);
 #endif
 	if (data->interface_status == 0)
 	{
@@ -40,7 +41,7 @@ int	handle_event_fd_event(struct s_janus_data *data, struct epoll_event *event)
 	else
 	{
 #ifndef JANUS_TERMINAL_MODE
-		Paint_Clear(WHITE);
+		
 		if (is_interface_up(data->interface_status, JAN_ETH0))
 		{
 			char eth0_str[64];
@@ -55,8 +56,6 @@ int	handle_event_fd_event(struct s_janus_data *data, struct epoll_event *event)
 			Paint_DrawString_EN(0, 10 + offset, wlan0_str, font_select, BLACK, WHITE);
 			offset += font_select->Height;
 		}
-		EPD_2in13_V4_Display(data->image_buffer);
-		EPD_2in13_V4_Sleep();
 #else
 		printf("Janus: Network interfaces status:\n");
 		if (is_interface_up(data->interface_status, JAN_ETH0))
@@ -69,5 +68,9 @@ int	handle_event_fd_event(struct s_janus_data *data, struct epoll_event *event)
 		}
 #endif
 	}
+# ifndef JANUS_TERMINAL_MODE
+		EPD_2in13_V4_Display(data->image_buffer);
+		EPD_2in13_V4_Sleep();
+# endif
 	return (0);
 }

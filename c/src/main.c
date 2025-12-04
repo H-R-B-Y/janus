@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 13:55:15 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 17:14:14 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 17:48:26 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -138,6 +138,10 @@ int	init_process(struct s_janus_data *data)
 	EPD_2in13_V4_Init();
 	// Clear the display
 	EPD_2in13_V4_Clear();
+	data->image_buffer = (UBYTE *)malloc(EPD_2in13_V4_WIDTH * EPD_2in13_V4_HEIGHT / 8);
+	if (data->image_buffer == NULL)
+		return (dprintf(STDERR_FILENO, "Failed to allocate memory for image buffer\n"), 1);
+	Paint_NewImage(data->image_buffer, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, ROTATE_270, WHITE);
 #else
 	printf("Janus: Starting in terminal mode\n");
 #endif

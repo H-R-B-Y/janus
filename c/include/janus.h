@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 13:55:27 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 17:13:45 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 17:45:13 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -112,6 +112,11 @@ struct s_janus_data
 
 	/// @brief Flag to control the main event loop
 	int		exit_loop;
+
+# ifndef JANUS_TERMINAL_MODE
+	UBYTE	*image_buffer; // For e-paper display buffer
+# endif
+
 };
 
 int	handle_net_event(struct s_janus_data *data, struct epoll_event *event);

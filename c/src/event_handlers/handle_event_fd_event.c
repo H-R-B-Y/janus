@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 16:03:59 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 18:35:24 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 18:37:31 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@ int	handle_event_fd_event(struct s_janus_data *data, struct epoll_event *event)
 	ssize_t		s;
 #ifndef JANUS_TERMINAL_MODE
 	uint16_t	offset;
-	sFONT		*font_select = &Font20;
+	sFONT		*font_select = &Font24;
 #endif
 
 	s = read(event->data.fd, &event_count, sizeof(event_count));
@@ -46,22 +46,22 @@ int	handle_event_fd_event(struct s_janus_data *data, struct epoll_event *event)
 		{
 			// char eth0_str[64];
 			// snprintf(eth0_str, sizeof(eth0_str), "ETH0: %s", data->eth0_interface);
-			Paint_DrawString_EN(0, 10 + offset, "ETH0: Connected", font_select, BLACK, WHITE);
+			Paint_DrawString_EN(0, 2 + offset, "ETH0:", font_select, BLACK, WHITE);
 			offset += font_select->Height + 1;
 			char eth0_str[64];
 			snprintf(eth0_str, sizeof(eth0_str), "%s", data->eth0_interface);
-			Paint_DrawString_EN(0, 10 + offset, eth0_str, font_select, BLACK, WHITE);
+			Paint_DrawString_EN(0, 2 + offset, eth0_str, font_select, BLACK, WHITE);
 			offset += font_select->Height + 1;
 		}
 		if (is_interface_up(data->interface_status, JAN_WLAN0))
 		{
 			// char wlan0_str[64];
 			// snprintf(wlan0_str, sizeof(wlan0_str), "WLAN0: %s", data->wlan0_interface);
-			Paint_DrawString_EN(0, 10 + offset, "WLAN0: Connected", font_select, BLACK, WHITE);
+			Paint_DrawString_EN(0, 2 + offset, "WLAN0:", font_select, BLACK, WHITE);
 			offset += font_select->Height + 1;
 			char wlan0_str[64];
 			snprintf(wlan0_str, sizeof(wlan0_str), "%s", data->wlan0_interface);
-			Paint_DrawString_EN(0, 10 + offset, wlan0_str, font_select, BLACK, WHITE);
+			Paint_DrawString_EN(0, 2 + offset, wlan0_str, font_select, BLACK, WHITE);
 			offset += font_select->Height + 1;
 		}
 #else

@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 16:03:59 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 17:13:45 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 17:28:49 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -80,7 +80,8 @@ int	handle_event_fd_event(struct s_janus_data *data, struct epoll_event *event)
 #endif
 	}
 #ifndef JANUS_TERMINAL_MODE
-	free(image_buffer);
+	// free(image_buffer); // This causes double free issue, 
+	;
 #endif
 	return (0);
 }

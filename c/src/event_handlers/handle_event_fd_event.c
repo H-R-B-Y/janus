@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 16:03:59 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 17:47:35 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 17:52:46 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,6 +26,8 @@ int	handle_event_fd_event(struct s_janus_data *data, struct epoll_event *event)
 		return (perror("read event_fd"), 1);
 #ifndef JANUS_TERMINAL_MODE
 	offset = 0;
+	if (data->image_buffer == NULL)
+		return (fprintf(stderr, "Image buffer is NULL\n"), 1);
 #endif
 	if (data->interface_status == 0)
 	{

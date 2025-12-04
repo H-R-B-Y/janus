@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 15:28:40 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 18:06:47 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 18:09:58 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -130,46 +130,36 @@ int	process_netlink_messages(struct s_janus_data *data, char *msg_buffer, ssize_
 
 int	handle_net_event(struct s_janus_data *data, struct epoll_event *event)
 {
-	char			initial_buffer[sizeof(struct nlmsghdr)];
-	char			*dynamic_buffer;
+	static char		buffer[8192];  // Static buffer to avoid malloc/free
 	ssize_t			len;
 	struct nlmsghdr	*nlh;
-	size_t			msg_len;
-
-	len = recv(event->data.fd, initial_buffer, sizeof(initial_buffer), MSG_PEEK);
+	
+	// Read available data directly into static buffer
+	len = recv(event->data.fd, buffer, sizeof(buffer), 0);
 	if (len == -1)
-		return (perror("recv peek"), 1);
+		return (perror("recv"), 1);
+	else if (len == 0)
+	{
+		fprintf(stderr, "Netlink socket closed unexpectedly\n");
+		return (1);
+	}
 	else if (len < (ssize_t)sizeof(struct nlmsghdr))
 	{
-		fprintf(stderr, "Received incomplete netlink message header\n");
-		return (1);
-	}
-	nlh = (struct nlmsghdr *)initial_buffer;
-	
-	// Validate message length to prevent invalid malloc
-	msg_len = nlh->nlmsg_len;
-	if (msg_len < sizeof(struct nlmsghdr) || msg_len > 65536)
-	{
-		fprintf(stderr, "Invalid netlink message length: %zu\n", msg_len);
-		// Consume the invalid message to prevent infinite loop
-		char discard[4096];
-		recv(event->data.fd, discard, sizeof(discard), 0);
+		fprintf(stderr, "Received incomplete netlink message (%zd bytes)\n", len);
 		return (1);
 	}
 	
-	dynamic_buffer = malloc(msg_len);
-	if (dynamic_buffer == NULL)
-		return (perror("malloc"), 1);
-	len = recv(event->data.fd, dynamic_buffer, msg_len, 0);
-	if (len == -1)
-		return (perror("recv"),free(dynamic_buffer),1);
-	else if (len < (ssize_t)msg_len)
+	// Basic validation of the first message header
+	nlh = (struct nlmsghdr *)buffer;
+	if (nlh->nlmsg_len > (size_t)len || nlh->nlmsg_len < sizeof(struct nlmsghdr))
 	{
-		fprintf(stderr, "Received incomplete netlink message (%zd of %zu bytes)\n", 
-				len, msg_len);
-		return (free(dynamic_buffer), 1);
+		fprintf(stderr, "Invalid netlink message: len=%u, received=%zd\n", 
+				nlh->nlmsg_len, len);
+		return (1);
 	}
-	if (process_netlink_messages(data, dynamic_buffer, len))
-		return (free(dynamic_buffer), 1);
-	return (free(dynamic_buffer), 0);
+	
+	// Process the messages
+	if (process_netlink_messages(data, buffer, len))
+		return (1);
+	return (0);
 }

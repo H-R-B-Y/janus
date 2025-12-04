@@ -1,12 +1,12 @@
-NAME		= JANUS
-CC			= gcc
+NAME			= JANUS
+CC				= gcc
 
-CFLAGS		= -g -O -ffunction-sections -fdata-sections -Wall -Wextra -Werror -fPIC
+CFLAGS			= -g3 -O -ffunction-sections -fdata-sections -Wall -Wextra -Werror -fPIC
 
 # gcc src/main.c -I./lib/Config -I./lib/GUI -I./lib/Fonts -I./lib/e-Paper -I include -I lib -L lib -lepd_2in13_v4 -lgui -lfonts -lconfig -llgpio -lm 
 
 # Flags for mlx because it needs to be compiled with specific flags for distro compatibility
-EPDFLAGS	:=  -g -O -ffunction-sections -fdata-sections -Wall -fPIC
+EPDFLAGS		:=  -g -O -ffunction-sections -fdata-sections -Wall -fPIC
 
 MAKEFLAGS		+= --no-print-directory
 

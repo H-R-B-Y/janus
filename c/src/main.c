@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 13:55:15 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 14:27:29 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 14:55:51 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,7 +43,7 @@ int main()
 	Paint_Clear(WHITE);
 	Paint_DrawChar(10, 10, 'A', &Font24, BLACK, WHITE);
 	EPD_2in13_V4_Display(image);
-	free(image);
+	// free(image);
 	EPD_2in13_V4_Sleep();
 	DEV_Module_Exit();
 	return (0);

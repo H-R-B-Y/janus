@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 13:55:15 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 14:10:46 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 14:26:09 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,7 @@ int main()
 		dprintf(STDERR_FILENO, "Failed to allocate memory for image buffer\n");
 		return (1);
 	}
-	Paint_NewImage(image, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, ROTATE_0, WHITE);
+	Paint_NewImage(image, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, ROTATE_180, WHITE);
 	Paint_Clear(WHITE);
 	Paint_DrawChar(10, 10, 'A', &Font24, BLACK, WHITE);
 	EPD_2in13_V4_Display(image);

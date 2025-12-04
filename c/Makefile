@@ -6,11 +6,11 @@ CFLAGS			= -g3 -O -ffunction-sections -fdata-sections -Wall -Wextra -Werror -fPI
 # Check if TERMINAL_MODE is defined
 ifdef TERMINAL_MODE
 CFLAGS			+= -DJANUS_TERMINAL_MODE
-LIBFLAGS		:= -lm
+LIBFLAGS		:= -lm -lpthread
 INCLUDES		:= -I./include
 else
 # gcc src/main.c -I./lib/Config -I./lib/GUI -I./lib/Fonts -I./lib/e-Paper -I include -I lib -L lib -lepd_2in13_v4 -lgui -lfonts -lconfig -llgpio -lm 
-LIBFLAGS		:= -L lib -lepd_2in13_v4 -lgui -lfonts -lconfig -llgpio -lm
+LIBFLAGS		:= -L lib -lepd_2in13_v4 -lgui -lfonts -lconfig -llgpio -lm -lpthread
 INCLUDES		:= -I./include -I./lib/Config -I./lib/GUI -I./lib/Fonts -I./lib/e-Paper
 endif
 

@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 13:55:15 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 17:55:44 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 18:18:42 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,7 +46,8 @@ int	setup_netlink_socket(struct s_janus_data *data)
 
 	memset(&addr, 0, sizeof(addr));
 	addr.nl_family = AF_NETLINK;
-	addr.nl_groups = RTMGRP_IPV4_IFADDR;
+	// Subscribe to both IPv4 address changes and link changes
+	addr.nl_groups = RTMGRP_IPV4_IFADDR | RTMGRP_LINK;
 
 	if (bind(data->netlink_socket, (struct sockaddr *)&addr, sizeof(addr)) == -1)
 	{
@@ -55,6 +56,7 @@ int	setup_netlink_socket(struct s_janus_data *data)
 		return (1);
 	}
 
+	printf("Janus: Netlink socket set up, subscribed to groups: %u\n", addr.nl_groups);
 	return (0);
 }
 

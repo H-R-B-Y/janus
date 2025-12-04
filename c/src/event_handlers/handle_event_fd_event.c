@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 16:03:59 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 18:14:01 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 18:20:15 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,8 +69,7 @@ int	handle_event_fd_event(struct s_janus_data *data, struct epoll_event *event)
 #endif
 	}
 # ifndef JANUS_TERMINAL_MODE
-		EPD_2in13_V4_Display(data->image_buffer);
-		EPD_2in13_V4_Sleep();
+	EPD_2in13_V4_Display(data->image_buffer);
 # endif
 	return (0);
 }

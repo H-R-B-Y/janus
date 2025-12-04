@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 15:28:40 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 18:09:58 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 18:12:36 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,9 +48,9 @@ int	new_address_handler(struct s_janus_data *data, struct nlmsghdr *nlh)
 				strncpy(data->wlan0_interface, ip_str, INET_ADDRSTRLEN - 1);
 				data->wlan0_interface[INET_ADDRSTRLEN - 1] = '\0';
 				mark_interface_up(&data->interface_status, JAN_WLAN0);
-#ifdef JANUS_TERMINAL_MODE
+
 				printf("Janus: WLAN0 interface up with IP: %s\n", ip_str);
-#endif
+
 				eventfd_write(data->event_fd, 1);
 			}
 			else if (strcmp(ifname, "eth0") == 0)
@@ -58,9 +58,9 @@ int	new_address_handler(struct s_janus_data *data, struct nlmsghdr *nlh)
 				strncpy(data->eth0_interface, ip_str, INET_ADDRSTRLEN - 1);
 				data->eth0_interface[INET_ADDRSTRLEN - 1] = '\0';
 				mark_interface_up(&data->interface_status, JAN_ETH0);
-#ifdef JANUS_TERMINAL_MODE
+
 				printf("Janus: ETH0 interface up with IP: %s\n", ip_str);
-#endif
+
 				eventfd_write(data->event_fd, 1);
 			}
 		}
@@ -84,18 +84,18 @@ int	del_address_handler(struct s_janus_data *data, struct nlmsghdr *nlh)
 	{
 		memset(data->wlan0_interface, 0, INET_ADDRSTRLEN);
 		mark_interface_down(&data->interface_status, JAN_WLAN0);
-#ifdef JANUS_TERMINAL_MODE
+
 		printf("Janus: WLAN0 interface down\n");
-#endif
+
 		eventfd_write(data->event_fd, 1);
 	}
 	else if (strcmp(ifname, "eth0") == 0)
 	{
 		memset(data->eth0_interface, 0, INET_ADDRSTRLEN);
 		mark_interface_down(&data->interface_status, JAN_ETH0);
-#ifdef JANUS_TERMINAL_MODE
+
 		printf("Janus: ETH0 interface down\n");
-#endif
+
 		eventfd_write(data->event_fd, 1);
 	}
 	return (0);
@@ -115,9 +115,11 @@ int	process_netlink_messages(struct s_janus_data *data, char *msg_buffer, ssize_
 		switch (nlh->nlmsg_type)
 		{
 			case RTM_NEWADDR:
+				printf("Received RTM_NEWADDR message\n");
 				new_address_handler(data, nlh);
 				break;
 			case RTM_DELADDR:
+				printf("Received RTM_DELADDR message\n");
 				del_address_handler(data, nlh);
 				break;
 			default:

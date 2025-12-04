@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 16:03:59 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 18:20:15 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 18:23:46 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,7 @@ int	handle_event_fd_event(struct s_janus_data *data, struct epoll_event *event)
 	ssize_t		s;
 #ifndef JANUS_TERMINAL_MODE
 	uint16_t	offset;
-	sFONT		*font_select = &Font12;
+	sFONT		*font_select = &Font20;
 #endif
 
 	s = read(event->data.fd, &event_count, sizeof(event_count));

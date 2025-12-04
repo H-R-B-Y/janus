@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 16:03:59 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 17:28:49 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 17:29:56 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,7 +48,7 @@ int	handle_event_fd_event(struct s_janus_data *data, struct epoll_event *event)
 	{
 		// We want to draw the current IP addresses on the display
 #ifndef JANUS_TERMINAL_MODE
-		Paint_NewImage(image_buffer, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, 0, WHITE);
+		Paint_NewImage(image_buffer, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, ROTATE_270, WHITE);
 		Paint_Clear(WHITE);
 
 		if (is_interface_up(data->interface_status, JAN_ETH0))

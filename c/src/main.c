@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 13:55:15 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 14:06:49 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/04 14:10:46 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,11 @@
 
 int	init_process(void)
 {
+	if (DEV_Module_Init() != 0)
+	{
+		dprintf(STDERR_FILENO, "Failed to initialize the hardware module\n");
+		return (1);
+	}
 	EPD_2in13_V4_Init();
 	EPD_2in13_V4_Clear();
 	return (0);
@@ -40,5 +45,6 @@ int main()
 	EPD_2in13_V4_Display(image);
 	free(image);
 	EPD_2in13_V4_Sleep();
+	DEV_Module_Exit();
 	return (0);
 }

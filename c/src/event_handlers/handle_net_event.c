@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 15:28:40 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 18:19:38 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/06 10:26:36 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -43,23 +43,23 @@ int	new_address_handler(struct s_janus_data *data, struct nlmsghdr *nlh)
 		{
 			
 			inet_ntop(AF_INET, RTA_DATA(rta), ip_str, sizeof(ip_str));
-			if (strcmp(ifname, "wlan0") == 0)
+			if (strcmp(ifname, INTERFACE_2) == 0)
 			{
 				strncpy(data->wlan0_interface, ip_str, INET_ADDRSTRLEN - 1);
 				data->wlan0_interface[INET_ADDRSTRLEN - 1] = '\0';
-				mark_interface_up(&data->interface_status, JAN_WLAN0);
+				mark_interface_up(&data->interface_status, INTERFACE_2_NAME);
 
-				printf("Janus: WLAN0 interface up with IP: %s\n", ip_str);
+				printf("Janus: %s interface up with IP: %s\n", INTERFACE_2, ip_str);
 
 				eventfd_write(data->event_fd, 1);
 			}
-			else if (strcmp(ifname, "eth0") == 0)
+			else if (strcmp(ifname, INTERFACE_1) == 0)
 			{
 				strncpy(data->eth0_interface, ip_str, INET_ADDRSTRLEN - 1);
 				data->eth0_interface[INET_ADDRSTRLEN - 1] = '\0';
-				mark_interface_up(&data->interface_status, JAN_ETH0);
+				mark_interface_up(&data->interface_status, INTERFACE_1_NAME);
 
-				printf("Janus: ETH0 interface up with IP: %s\n", ip_str);
+				printf("Janus: %s interface up with IP: %s\n", INTERFACE_1, ip_str);
 
 				eventfd_write(data->event_fd, 1);
 			}
@@ -80,19 +80,19 @@ int	del_address_handler(struct s_janus_data *data, struct nlmsghdr *nlh)
 		fprintf(stderr, "Could not get interface name for index %d\n", ifa->ifa_index);
 		return (1);
 	}
-	if (strcmp(ifname, "wlan0") == 0)
+	if (strcmp(ifname, INTERFACE_2) == 0)
 	{
 		memset(data->wlan0_interface, 0, INET_ADDRSTRLEN);
-		mark_interface_down(&data->interface_status, JAN_WLAN0);
+		mark_interface_down(&data->interface_status, INTERFACE_2_NAME);
 
 		printf("Janus: WLAN0 interface down\n");
 
 		eventfd_write(data->event_fd, 1);
 	}
-	else if (strcmp(ifname, "eth0") == 0)
+	else if (strcmp(ifname, INTERFACE_1) == 0)
 	{
 		memset(data->eth0_interface, 0, INET_ADDRSTRLEN);
-		mark_interface_down(&data->interface_status, JAN_ETH0);
+		mark_interface_down(&data->interface_status, INTERFACE_1_NAME);
 
 		printf("Janus: ETH0 interface down\n");
 

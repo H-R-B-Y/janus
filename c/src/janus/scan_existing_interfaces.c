@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 16:45:00 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 16:46:25 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/06 10:16:55 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,20 +46,20 @@ int scan_existing_interfaces(struct s_janus_data *data)
 			perror("inet_ntop");
 			continue;
 		}
-		if (strcmp(ifa->ifa_name, "wlan0") == 0)
+		if (strcmp(ifa->ifa_name, INTERFACE_2) == 0)
 		{
 			strncpy(data->wlan0_interface, ip_str, INET_ADDRSTRLEN - 1);
 			data->wlan0_interface[INET_ADDRSTRLEN - 1] = '\0';
-			mark_interface_up(&data->interface_status, JAN_WLAN0);
-			printf("Found existing wlan0 interface with IP: %s\n", ip_str);
+			mark_interface_up(&data->interface_status, INTERFACE_2_NAME);
+			printf("Found existing %s interface with IP: %s\n", INTERFACE_2, ip_str);
 			found_interfaces++;
 		}
-		else if (strcmp(ifa->ifa_name, "eth0") == 0)
+		else if (strcmp(ifa->ifa_name, INTERFACE_1) == 0)
 		{
 			strncpy(data->eth0_interface, ip_str, INET_ADDRSTRLEN - 1);
 			data->eth0_interface[INET_ADDRSTRLEN - 1] = '\0';
-			mark_interface_up(&data->interface_status, JAN_ETH0);
-			printf("Found existing eth0 interface with IP: %s\n", ip_str);
+			mark_interface_up(&data->interface_status, INTERFACE_1_NAME);
+			printf("Found existing %s interface with IP: %s\n", INTERFACE_1, ip_str);
 			found_interfaces++;
 		}
 	}

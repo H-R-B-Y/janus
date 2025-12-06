@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 13:55:27 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 17:45:13 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/06 10:22:49 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -67,12 +67,25 @@ SIGUSR1 and SIGUSR2.
 # include <sys/eventfd.h>
 # include <net/if.h>
 
+/* Default interfaces; can be overridden via compiler -DINTERFACE_1/2 */
+# ifndef INTERFACE_1
+#  define INTERFACE_1 "eth0"
+# endif
+# ifndef INTERFACE_2
+#  define INTERFACE_2 "wlan0"
+# endif
+
+/* Stable enum identifiers for interface bit flags */
 enum e_interface_status
 {
 	JAN_NO_INTERFACE = 0,
-	JAN_ETH0 = (1 << 0),
-	JAN_WLAN0 = (1 << 1)
+	JAN_INTERFACE_1 = (1 << 0),
+	JAN_INTERFACE_2 = (1 << 1)
 };
+
+/* Map configurable interface slots to stable enum flags */
+# define INTERFACE_1_NAME JAN_INTERFACE_1
+# define INTERFACE_2_NAME JAN_INTERFACE_2
 
 static inline int	is_interface_up(int status, enum e_interface_status interface)
 {

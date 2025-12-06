@@ -1,7 +1,10 @@
 NAME			= JANUS
 CC				= gcc
 
-CFLAGS			= -g3 -O -ffunction-sections -fdata-sections -Wall -Wextra -Werror -fPIC
+CFLAGS			?= -g3 -O -ffunction-sections -fdata-sections -Wall -Wextra -Werror -fPIC
+
+INTERFACE_1		?= wlan0
+INTERFACE_2		?= eth0
 
 # Check if TERMINAL_MODE is defined
 ifdef TERMINAL_MODE
@@ -13,8 +16,9 @@ else
 LIBFLAGS		:= -L lib -lepd_2in13_v4 -lgui -lfonts -lconfig -llgpio -lm -lpthread
 INCLUDES		:= -I./include -I./lib/Config -I./lib/GUI -I./lib/Fonts -I./lib/e-Paper
 endif
+CFLAGS			+= -DINTERFACE_1=\"$(INTERFACE_1)\"
+CFLAGS			+= -DINTERFACE_2=\"$(INTERFACE_2)\"
 
-# Flags for mlx because it needs to be compiled with specific flags for distro compatibility
 EPDFLAGS		:=  -g -O -ffunction-sections -fdata-sections -Wall -fPIC
 
 MAKEFLAGS		+= --no-print-directory
@@ -46,13 +50,45 @@ $(NAME): $(OBJS)
 ifdef TERMINAL_MODE
 		$(CC) $(CFLAGS) $(INCLUDES) $(OBJS) $(LIBFLAGS) -o $(NAME)
 else
-		$(MAKE) --directory ./lib/ clean
-		$(MAKE) --directory ./lib/
 		$(CC) $(CFLAGS) $(INCLUDES) $(OBJS) $(LIBFLAGS) -o $(NAME)
 endif
 
 terminal: 
 		$(MAKE) TERMINAL_MODE=1
+
+service:
+		@rm ./janus.service || true
+		@touch ./janus.service
+		@echo "[Unit]" >> ./janus.service
+		@echo "Description=JANUS" >> ./janus.service
+		@echo "After=network-online.target" >> ./janus.service
+		@echo "Wants=network-online.target" >> ./janus.service
+		@echo "" >> ./janus.service
+		@echo "[Service]" >> ./janus.service
+		@echo "Type=oneshot" >> ./janus.service
+		@echo "User=root" >> ./janus.service
+		@echo "WorkingDirectory=${PWD}" >> ./janus.service
+		@echo "ExecStart=${PWD}/${NAME}" >> ./janus.service
+		@echo "RemainAfterExit=yes" >> ./janus.service
+		@echo "StandardOutput=journal" >> ./janus.service
+		@echo "StandardError=journal" >> ./janus.service
+		@echo "" >> ./janus.service
+		@echo "[Install]" >> ./janus.service
+		@echo "WantedBy=multi-user.target" >> ./janus.service
+
+install: service
+		@$(MAKE)
+		# Install
+		@echo "The following needs to be run with sudo:"
+		sudo cp ./janus.service /etc/systemd/system/janus.service
+		sudo systemctl enable janus.service
+		sudo systemctl start janus.service &
+
+uninstall:
+		@rm -rf ./janus.service
+		sudo systemctl stop janus.service
+		sudo systemctl disable janus.service
+		sudo rm -rf /etc/systemd/system/janus.service
 
 %.o: %.c
 		@$(CC) $(CFLAGS) -o $@ -c $< $(INCLUDES)
@@ -68,6 +104,7 @@ clean:
 rm:
 		@$(MAKE) --directory ./lib/ clean
 		@rm -rf $(NAME)
+		@rm -rf janus.service
 
 fclean: clean rm pre post
 

@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 15:56:05 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/04 16:41:49 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/06 10:58:29 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -21,10 +21,7 @@ int	janus_run(struct s_janus_data *data)
 	{
 		n = epoll_wait(data->epoll_fd, events, 10, -1);
 		if (n == -1)
-		{
-			perror("epoll_wait");
-			return (1);
-		}
+			return (perror("epoll_wait"), 1);
 		for (int i = 0; i < n; i++)
 		{
 			if (events[i].data.fd == data->netlink_socket)

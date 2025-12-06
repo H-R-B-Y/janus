@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 16:03:59 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/06 10:27:43 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/06 11:02:34 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -49,18 +49,18 @@ int	handle_event_fd_event(struct s_janus_data *data, struct epoll_event *event)
 			Paint_DrawString_EN(0, 2 + offset, INTERFACE_1, font_select, BLACK, WHITE);
 			offset += font_select->Height + 1;
 			char eth0_str[64];
-			snprintf(eth0_str, sizeof(eth0_str), "%s", data->eth0_interface);
+			snprintf(eth0_str, sizeof(eth0_str), "%s", data->interface1_addr);
 			Paint_DrawString_EN(0, 2 + offset, eth0_str, font_select, BLACK, WHITE);
 			offset += font_select->Height + 1;
 		}
 		if (is_interface_up(data->interface_status, INTERFACE_2_NAME))
 		{
 			// char wlan0_str[64];
-			// snprintf(wlan0_str, sizeof(wlan0_str), "WLAN0: %s", data->wlan0_interface);
+			// snprintf(wlan0_str, sizeof(wlan0_str), "WLAN0: %s", data->interface2_addr);
 			Paint_DrawString_EN(0, 2 + offset, INTERFACE_2, font_select, BLACK, WHITE);
 			offset += font_select->Height + 1;
 			char wlan0_str[64];
-			snprintf(wlan0_str, sizeof(wlan0_str), "%s", data->wlan0_interface);
+			snprintf(wlan0_str, sizeof(wlan0_str), "%s", data->interface2_addr);
 			Paint_DrawString_EN(0, 2 + offset, wlan0_str, font_select, BLACK, WHITE);
 			offset += font_select->Height + 1;
 		}
@@ -68,11 +68,11 @@ int	handle_event_fd_event(struct s_janus_data *data, struct epoll_event *event)
 		printf("Janus: Network interfaces status:\n");
 		if (is_interface_up(data->interface_status, INTERFACE_1_NAME))
 		{
-			printf("  %s: %s\n", INTERFACE_1, data->eth0_interface);
+			printf("  %s: %s\n", INTERFACE_1, data->interface1_addr);
 		}
 		if (is_interface_up(data->interface_status, INTERFACE_2_NAME))
 		{
-			printf("  %s: %s\n", INTERFACE_2, data->wlan0_interface);
+			printf("  %s: %s\n", INTERFACE_2, data->interface2_addr);
 		}
 #endif
 	}

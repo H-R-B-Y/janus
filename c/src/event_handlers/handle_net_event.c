@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 15:28:40 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/06 10:26:36 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/06 11:02:34 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -45,8 +45,8 @@ int	new_address_handler(struct s_janus_data *data, struct nlmsghdr *nlh)
 			inet_ntop(AF_INET, RTA_DATA(rta), ip_str, sizeof(ip_str));
 			if (strcmp(ifname, INTERFACE_2) == 0)
 			{
-				strncpy(data->wlan0_interface, ip_str, INET_ADDRSTRLEN - 1);
-				data->wlan0_interface[INET_ADDRSTRLEN - 1] = '\0';
+				strncpy(data->interface2_addr, ip_str, INET_ADDRSTRLEN - 1);
+				data->interface2_addr[INET_ADDRSTRLEN - 1] = '\0';
 				mark_interface_up(&data->interface_status, INTERFACE_2_NAME);
 
 				printf("Janus: %s interface up with IP: %s\n", INTERFACE_2, ip_str);
@@ -55,8 +55,8 @@ int	new_address_handler(struct s_janus_data *data, struct nlmsghdr *nlh)
 			}
 			else if (strcmp(ifname, INTERFACE_1) == 0)
 			{
-				strncpy(data->eth0_interface, ip_str, INET_ADDRSTRLEN - 1);
-				data->eth0_interface[INET_ADDRSTRLEN - 1] = '\0';
+				strncpy(data->interface1_addr, ip_str, INET_ADDRSTRLEN - 1);
+				data->interface1_addr[INET_ADDRSTRLEN - 1] = '\0';
 				mark_interface_up(&data->interface_status, INTERFACE_1_NAME);
 
 				printf("Janus: %s interface up with IP: %s\n", INTERFACE_1, ip_str);
@@ -82,7 +82,7 @@ int	del_address_handler(struct s_janus_data *data, struct nlmsghdr *nlh)
 	}
 	if (strcmp(ifname, INTERFACE_2) == 0)
 	{
-		memset(data->wlan0_interface, 0, INET_ADDRSTRLEN);
+		memset(data->interface2_addr, 0, INET_ADDRSTRLEN);
 		mark_interface_down(&data->interface_status, INTERFACE_2_NAME);
 
 		printf("Janus: WLAN0 interface down\n");
@@ -91,7 +91,7 @@ int	del_address_handler(struct s_janus_data *data, struct nlmsghdr *nlh)
 	}
 	else if (strcmp(ifname, INTERFACE_1) == 0)
 	{
-		memset(data->eth0_interface, 0, INET_ADDRSTRLEN);
+		memset(data->interface1_addr, 0, INET_ADDRSTRLEN);
 		mark_interface_down(&data->interface_status, INTERFACE_1_NAME);
 
 		printf("Janus: ETH0 interface down\n");
@@ -109,7 +109,7 @@ int	process_netlink_messages(struct s_janus_data *data, char *msg_buffer, ssize_
 		 NLMSG_OK(nlh, len); 
 		 nlh = NLMSG_NEXT(nlh, len))
 	{
-		// Ok so the events we care about are:
+		// The events we care about are:
 		// newaddr - New IP address assigned (RTM_NEWADDR)
 		// deladdr - IP address removed (RTM_DELADDR)
 		switch (nlh->nlmsg_type)
@@ -132,11 +132,10 @@ int	process_netlink_messages(struct s_janus_data *data, char *msg_buffer, ssize_
 
 int	handle_net_event(struct s_janus_data *data, struct epoll_event *event)
 {
-	static char		buffer[8192];  // Static buffer to avoid malloc/free
+	static char		buffer[8192];
 	ssize_t			len;
 	struct nlmsghdr	*nlh;
-	
-	// Read available data directly into static buffer
+
 	len = recv(event->data.fd, buffer, sizeof(buffer), 0);
 	if (len == -1)
 		return (perror("recv"), 1);
@@ -150,8 +149,6 @@ int	handle_net_event(struct s_janus_data *data, struct epoll_event *event)
 		fprintf(stderr, "Received incomplete netlink message (%zd bytes)\n", len);
 		return (1);
 	}
-	
-	// Basic validation of the first message header
 	nlh = (struct nlmsghdr *)buffer;
 	if (nlh->nlmsg_len > (size_t)len || nlh->nlmsg_len < sizeof(struct nlmsghdr))
 	{
@@ -159,8 +156,6 @@ int	handle_net_event(struct s_janus_data *data, struct epoll_event *event)
 				nlh->nlmsg_len, len);
 		return (1);
 	}
-	
-	// Process the messages
 	if (process_netlink_messages(data, buffer, len))
 		return (1);
 	return (0);

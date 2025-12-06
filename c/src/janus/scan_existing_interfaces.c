@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 16:45:00 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/06 10:16:55 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/06 11:09:58 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,16 +14,10 @@
 #include <ifaddrs.h>
 #include <arpa/inet.h>
 
-/**
- * @brief Scan existing network interfaces and populate IP addresses
- * 
- * This function checks if wlan0 or eth0 already have assigned IP addresses
- * when the program starts, which would be missed by the netlink event monitoring
- * since those events only catch new assignments.
- * 
- * @param data Pointer to the main janus data structure
- * @return 0 on success, 1 on failure
- */
+/*
+Sort of monolithic, would be good to split this into
+smaller chunks later.
+*/
 int scan_existing_interfaces(struct s_janus_data *data)
 {
 	struct ifaddrs		*ifaddrs_list;
@@ -48,16 +42,16 @@ int scan_existing_interfaces(struct s_janus_data *data)
 		}
 		if (strcmp(ifa->ifa_name, INTERFACE_2) == 0)
 		{
-			strncpy(data->wlan0_interface, ip_str, INET_ADDRSTRLEN - 1);
-			data->wlan0_interface[INET_ADDRSTRLEN - 1] = '\0';
+			strncpy(data->interface2_addr, ip_str, INET_ADDRSTRLEN - 1);
+			data->interface2_addr[INET_ADDRSTRLEN - 1] = '\0';
 			mark_interface_up(&data->interface_status, INTERFACE_2_NAME);
 			printf("Found existing %s interface with IP: %s\n", INTERFACE_2, ip_str);
 			found_interfaces++;
 		}
 		else if (strcmp(ifa->ifa_name, INTERFACE_1) == 0)
 		{
-			strncpy(data->eth0_interface, ip_str, INET_ADDRSTRLEN - 1);
-			data->eth0_interface[INET_ADDRSTRLEN - 1] = '\0';
+			strncpy(data->interface1_addr, ip_str, INET_ADDRSTRLEN - 1);
+			data->interface1_addr[INET_ADDRSTRLEN - 1] = '\0';
 			mark_interface_up(&data->interface_status, INTERFACE_1_NAME);
 			printf("Found existing %s interface with IP: %s\n", INTERFACE_1, ip_str);
 			found_interfaces++;

@@ -34,6 +34,7 @@ SRCS			:= \
 				./src/event_handlers/handle_net_event.c \
 				./src/event_handlers/handle_signal_event.c \
 				./src/event_handlers/handle_event_fd_event.c \
+				./src/event_handlers/timer_wheel.c \
 				\
 
 

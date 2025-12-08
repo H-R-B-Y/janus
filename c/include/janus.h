@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 13:55:27 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/06 11:10:24 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/08 13:29:42 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -31,6 +31,10 @@
 
 # ifndef INET_ADDRSTRLEN
 # define INET_ADDRSTRLEN 16
+# endif
+
+# ifndef CLOCK_REALTIME
+#  define CLOCK_REALTIME 0
 # endif
 
 // Conditional compilation for e-paper display support
@@ -58,12 +62,29 @@ but for now include them all.
 # include <pthread.h>
 # include <sys/signal.h>
 # include <sys/signalfd.h>
+# include <sys/timerfd.h>
 # include <linux/netlink.h>
 # include <linux/rtnetlink.h>
 # include <sys/eventfd.h>
 # include <net/if.h>
 # include <ifaddrs.h>
 # include <arpa/inet.h>
+
+# ifndef TICK_SPEED
+/// @brief Tickspeed for the eventwheel in nanoseconds
+#  define TICK_SPEED
+# endif
+
+# ifndef MAX_TIMER_EVENT
+/// @brief Max number of events in the timer wheel
+/// each event represents a tick,
+/// so 2048 * tick_time = maximum delay in timer
+/// a tick time of 10 seconds gives us: 20480 seconds (5 hours)
+/// But we need to keep the timerfd at low tick time
+/// because we are going to use it to debounce the
+/// deladdr events to save us some CPU cycles
+#  define MAX_TIMER_EVENT 2048
+# endif
 
 /* Default interfaces; can be overridden via compiler -DINTERFACE_1/2 */
 # ifndef INTERFACE_1
@@ -74,6 +95,8 @@ but for now include them all.
 /// @brief Name of the second network interface to monitor (e.g., "wlan0")
 #  define INTERFACE_2 "wlan0"
 # endif
+
+struct s_janus_data;
 
 /// @brief Enumeration for interface status flags
 enum e_interface_status
@@ -125,32 +148,70 @@ static inline void	mark_interface_down(int *status, enum e_interface_status inte
 	if (status)
 		*status &= ~interface;
 }
+
+typedef int	(*t_timerwheel_callback)(
+	struct s_janus_data *janus,
+	void *data
+);
+
+struct s_timerwheel_event
+{
+	int						valid;
+	t_timerwheel_callback	fn;
+	void					*data;
+	void					(*free_data)(void *data);
+};
+
 /// @brief Janus internal data
 struct s_janus_data
 {
 	/// @brief Bitfield representing the status of monitored interfaces
-	int		interface_status;
+	int							interface_status;
+
+	/// @brief When interface down occurs, an event will be added to the
+	/// timerwheel, this is to debounce the output, this int will be populated with
+	/// which of the interfaces changed, when the timer expires this will be copied
+	/// back to interface status.
+	int							next_interface_status;
+
+	// /// @brief Bool to represent if the debounce has been scheduled.
+	// /// 
+	// int							interface_debounced;
 	
 	/// @brief IP address for the first interface
-	char	interface1_addr[INET_ADDRSTRLEN];
+	char						interface1_addr[INET_ADDRSTRLEN];
 
 	/// @brief IP address for the second interface
-	char	interface2_addr[INET_ADDRSTRLEN];
+	char						interface2_addr[INET_ADDRSTRLEN];
 
 	/// @brief Netlink socket for monitoring network events
-	int		netlink_socket;
+	int							netlink_socket;
 
 	/// @brief Epoll file descriptor for event monitoring
-	int		epoll_fd;
+	int							epoll_fd;
 
 	/// @brief For handling signals like SIGINT, SIGUSR1, SIGUSR2
-	int		signal_fd;
+	int							signal_fd;
+
+	/// @brief Bool to represent if a refresh has already been scheduled
+	int							refresh_scheduled;
 
 	/// @brief Event file descriptor for pushing a new image to the display
-	int		event_fd;
+	int							event_fd;
 
 	/// @brief Flag to control the main event loop
-	int		exit_loop;
+	int							exit_loop;
+
+	int							timerfd;
+
+	/// @brief Events in the timer wheel
+	struct s_timerwheel_event	timerwheel[MAX_TIMER_EVENT];
+
+	/// @brief Which event idx we are at
+	size_t						wheel_idx;
+
+	/// @brief Number of events in the wheel
+	size_t						events_queued;
 
 # ifndef JANUS_TERMINAL_MODE
 	/// @brief Buffer for e-paper display image
@@ -236,5 +297,56 @@ int	janus_run(struct s_janus_data *data);
  * @return int non-zero on error
  */
 int	scan_existing_interfaces(struct s_janus_data *data);
+
+
+static inline int	schedule_event(
+	struct s_janus_data *data,
+	size_t after,
+	t_timerwheel_callback fn,
+	void *event_data,
+	void (*free_data)(void *event_data)
+)
+{
+	register size_t	idx;
+	register size_t	blocked;
+
+	if (!data || !fn || after > MAX_TIMER_EVENT || data->events_queued >= MAX_TIMER_EVENT)
+		return (1);
+	idx = data->wheel_idx;
+	while (after)
+	{
+		idx = (idx + 1) % MAX_TIMER_EVENT;
+		after--;
+	}
+	blocked = 0;
+	while (data->timerwheel[idx].valid)
+	{
+		idx = (idx + 1) % MAX_TIMER_EVENT;
+		blocked++;
+	}
+	if (blocked >= MAX_TIMER_EVENT)
+		return (1);
+	data->timerwheel[idx] = (struct s_timerwheel_event){
+		.data = event_data, .free_data = free_data,
+		.fn = fn, .valid = 1};
+	if (data->events_queued == 0)
+	{
+		struct itimerspec spec = (struct itimerspec){
+			.it_interval.tv_sec = 1,
+			.it_interval.tv_nsec = 0,
+			.it_value.tv_sec = 1,
+			.it_value.tv_nsec = 0
+		};
+		if (timerfd_settime(data->timerfd, 0, &spec, NULL) < 0)
+			return (perror("timerfd set time"), 1);
+	}
+	data->events_queued++;
+	return (0);
+}
+
+int	handle_timer_wheel(
+	struct s_janus_data *data,
+	struct epoll_event *event
+);
 
 #endif /* JANUS_H */

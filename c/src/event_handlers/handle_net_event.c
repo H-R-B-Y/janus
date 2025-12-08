@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 15:28:40 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/06 11:02:34 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/08 13:13:24 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -41,26 +41,25 @@ int	new_address_handler(struct s_janus_data *data, struct nlmsghdr *nlh)
 	{
 		if (rta->rta_type == IFA_LOCAL)
 		{
-			
 			inet_ntop(AF_INET, RTA_DATA(rta), ip_str, sizeof(ip_str));
 			if (strcmp(ifname, INTERFACE_2) == 0)
 			{
 				strncpy(data->interface2_addr, ip_str, INET_ADDRSTRLEN - 1);
 				data->interface2_addr[INET_ADDRSTRLEN - 1] = '\0';
-				mark_interface_up(&data->interface_status, INTERFACE_2_NAME);
-
+				mark_interface_up(&data->next_interface_status, INTERFACE_2_NAME);
+#ifdef JANUS_TERMINAL_MODE
 				printf("Janus: %s interface up with IP: %s\n", INTERFACE_2, ip_str);
-
+#endif
 				eventfd_write(data->event_fd, 1);
 			}
 			else if (strcmp(ifname, INTERFACE_1) == 0)
 			{
 				strncpy(data->interface1_addr, ip_str, INET_ADDRSTRLEN - 1);
 				data->interface1_addr[INET_ADDRSTRLEN - 1] = '\0';
-				mark_interface_up(&data->interface_status, INTERFACE_1_NAME);
-
+				mark_interface_up(&data->next_interface_status, INTERFACE_1_NAME);
+#ifdef JANUS_TERMINAL_MODE
 				printf("Janus: %s interface up with IP: %s\n", INTERFACE_1, ip_str);
-
+#endif
 				eventfd_write(data->event_fd, 1);
 			}
 		}
@@ -83,19 +82,24 @@ int	del_address_handler(struct s_janus_data *data, struct nlmsghdr *nlh)
 	if (strcmp(ifname, INTERFACE_2) == 0)
 	{
 		memset(data->interface2_addr, 0, INET_ADDRSTRLEN);
-		mark_interface_down(&data->interface_status, INTERFACE_2_NAME);
-
+		mark_interface_down(&data->next_interface_status, INTERFACE_2_NAME);
+		/// TODO: here we need to schedule an event
+		/// when the event happens we need to compare which interfaces are set in the "next" value
+		/// and sub them out for the ones in the main interface bit mask.
+		/// can cast which interface we are talking about to
+		/// uintptr_t and 
+#ifdef JANUS_TERMINAL_MODE
 		printf("Janus: WLAN0 interface down\n");
-
+#endif
 		eventfd_write(data->event_fd, 1);
 	}
 	else if (strcmp(ifname, INTERFACE_1) == 0)
 	{
 		memset(data->interface1_addr, 0, INET_ADDRSTRLEN);
-		mark_interface_down(&data->interface_status, INTERFACE_1_NAME);
-
+		mark_interface_down(&data->next_interface_status, INTERFACE_1_NAME);
+#ifdef JANUS_TERMINAL_MODE
 		printf("Janus: ETH0 interface down\n");
-
+#endif
 		eventfd_write(data->event_fd, 1);
 	}
 	return (0);
@@ -106,8 +110,8 @@ int	process_netlink_messages(struct s_janus_data *data, char *msg_buffer, ssize_
 	struct nlmsghdr	*nlh;
 
 	for (nlh = (struct nlmsghdr *)msg_buffer; 
-		 NLMSG_OK(nlh, len); 
-		 nlh = NLMSG_NEXT(nlh, len))
+		NLMSG_OK(nlh, len); 
+		nlh = NLMSG_NEXT(nlh, len))
 	{
 		// The events we care about are:
 		// newaddr - New IP address assigned (RTM_NEWADDR)
@@ -115,15 +119,21 @@ int	process_netlink_messages(struct s_janus_data *data, char *msg_buffer, ssize_
 		switch (nlh->nlmsg_type)
 		{
 			case RTM_NEWADDR:
+#ifdef JANUS_TERMINAL_MODE
 				printf("Received RTM_NEWADDR message\n");
+#endif
 				new_address_handler(data, nlh);
 				break;
 			case RTM_DELADDR:
+#ifdef JANUS_TERMINAL_MODE
 				printf("Received RTM_DELADDR message\n");
+#endif
 				del_address_handler(data, nlh);
 				break;
 			default:
-				// Ignore other message types
+#ifdef JANUS_TERMINAL_MODE
+				printf("Recieved MSG TYPE %d\n", nlh->nlmsg_type);
+#endif
 				break;
 		}
 	}

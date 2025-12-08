@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 15:56:05 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/06 10:58:29 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/08 13:31:21 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -37,6 +37,11 @@ int	janus_run(struct s_janus_data *data)
 			else if (events[i].data.fd == data->event_fd)
 			{
 				if (handle_event_fd_event(data, &events[i]) != 0)
+					return (1);
+			}
+			else if (events[i].data.fd == data->timerfd)
+			{
+				if (handle_timer_wheel(data, &events[i]) != 0)
 					return (1);
 			}
 		}

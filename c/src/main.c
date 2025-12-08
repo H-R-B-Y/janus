@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 13:55:15 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/06 10:57:05 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/08 13:21:20 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -33,16 +33,33 @@ int	deinit_process(struct s_janus_data *data)
 	return (0);
 }
 
+int	setup_timerfd(struct s_janus_data *data)
+{
+	if (!data)
+		return (dprintf(STDERR_FILENO, "No data to intialise timerfd\n"), 1);
+	data->timerfd = timerfd_create(CLOCK_REALTIME, 0);
+	if (data->timerfd < 0)
+		return (perror("timerfd"), 1);
+	return (0);
+}
+
 int	setup_netlink_socket(struct s_janus_data *data)
 {
 	struct sockaddr_nl addr;
 
+	//								protocol NETLINK_ROUTE see man netlink.7
 	data->netlink_socket = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 	if (data->netlink_socket == -1)
 		return (perror("socket"), 1);
 	memset(&addr, 0, sizeof(addr));
 	addr.nl_family = AF_NETLINK;
 	// Subscribe to both IPv4 address changes and link changes
+	// For the life of me I cannot find the fucking man page
+	// that defines the groups
+	// they should be in man rtnetlink.7 but they arent
+	// so i am not sure what groups are available to me?
+	// it does say in netlink that this is a bitfield of up to 32 groups to subscribe too 
+	// but rtnetlink does not say which flags to set for what group of messages
 	addr.nl_groups = RTMGRP_IPV4_IFADDR | RTMGRP_LINK;
 	if (bind(data->netlink_socket, (struct sockaddr *)&addr, sizeof(addr)) == -1)
 		return (perror("bind netlink socket"), 1);
@@ -105,6 +122,10 @@ int	register_epoll_events(struct s_janus_data *data)
 	event.data.fd = data->event_fd;
 	if (epoll_ctl(data->epoll_fd, EPOLL_CTL_ADD, data->event_fd, &event) == -1)
 		return (perror("epoll_ctl: event_fd"), 1);
+	event.events = EPOLLIN;
+	event.data.fd = data->timerfd;
+	if (epoll_ctl(data->epoll_fd, EPOLL_CTL_ADD, data->timerfd, &event) == -1)
+		return (perror("epoll_ctl: timer_fd"), 1);
 	return (0);
 }
 
@@ -134,6 +155,8 @@ int	init_process(struct s_janus_data *data)
 	if (setup_event_fd(data))
 		return (1);
 	if (setup_epoll(data))
+		return (1);
+	if (setup_timerfd(data))
 		return (1);
 	if (register_epoll_events(data))
 		return (1);

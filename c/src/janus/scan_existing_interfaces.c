@@ -6,13 +6,11 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 16:45:00 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/06 11:09:58 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/08 13:33:14 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "janus.h"
-#include <ifaddrs.h>
-#include <arpa/inet.h>
 
 /*
 Sort of monolithic, would be good to split this into
@@ -58,6 +56,7 @@ int scan_existing_interfaces(struct s_janus_data *data)
 		}
 	}
 	freeifaddrs(ifaddrs_list);
+	data->next_interface_status = data->interface_status;
 	if (found_interfaces > 0)
 		eventfd_write(data->event_fd, 1);
 	return (0);

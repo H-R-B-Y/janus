@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 13:55:15 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/08 13:21:20 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/09 12:31:22 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -126,6 +126,10 @@ int	register_epoll_events(struct s_janus_data *data)
 	event.data.fd = data->timerfd;
 	if (epoll_ctl(data->epoll_fd, EPOLL_CTL_ADD, data->timerfd, &event) == -1)
 		return (perror("epoll_ctl: timer_fd"), 1);
+	event.events = EPOLLIN;
+	event.data.fd = STDIN_FILENO;
+	if (epoll_ctl(data->epoll_fd, EPOLL_CTL_ADD, STDIN_FILENO, &event) == -1)
+		return (perror("epoll_ctl: stdin"), 1);
 	return (0);
 }
 
@@ -145,6 +149,8 @@ int	init_process(struct s_janus_data *data)
 	if (data->image_buffer == NULL)
 		return (dprintf(STDERR_FILENO, "Failed to allocate memory for image buffer\n"), 1);
 	Paint_NewImage(data->image_buffer, EPD_2in13_V4_WIDTH, EPD_2in13_V4_HEIGHT, ROTATE_270, WHITE);
+	Paint_DrawString_EN(0, 0, "Janus: starting", &Font16, BLACK, WHITE);
+	EPD_2in13_V4_Display(data->image_buffer);
 #else
 	printf("Janus: Starting in terminal mode\n");
 #endif

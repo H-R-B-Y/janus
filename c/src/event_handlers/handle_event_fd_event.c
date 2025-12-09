@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 16:03:59 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/08 13:28:12 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/09 11:30:16 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -22,7 +22,13 @@ int	refresh_callback(
 	sFONT		*font_select = &Font24;
 #endif
 	(void)event_data;
-	
+
+	if (data->message_scheduled)
+	{
+		schedule_event(data, 5, refresh_callback, NULL, NULL);
+		return (0);
+	}
+
 	if (data->next_interface_status != data->interface_status)
 		data->interface_status = data->next_interface_status;
 # ifndef JANUS_TERMINAL_MODE

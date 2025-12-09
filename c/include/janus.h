@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 13:55:27 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/08 13:29:42 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/09 11:28:21 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,6 +69,8 @@ but for now include them all.
 # include <net/if.h>
 # include <ifaddrs.h>
 # include <arpa/inet.h>
+
+# include "get_next_line.h"
 
 # ifndef TICK_SPEED
 /// @brief Tickspeed for the eventwheel in nanoseconds
@@ -202,6 +204,9 @@ struct s_janus_data
 	/// @brief Flag to control the main event loop
 	int							exit_loop;
 
+	/// @brief If a message has been scheduled
+	int							message_scheduled;
+
 	int							timerfd;
 
 	/// @brief Events in the timer wheel
@@ -274,6 +279,15 @@ int	handle_signal_event(struct s_janus_data *data, struct epoll_event *event);
  * @return int non-zero on error
  */
 int	handle_event_fd_event(struct s_janus_data *data, struct epoll_event *event);
+
+/**
+ * @brief Handler for stdin epoll event
+ * 
+ * @param data Janus
+ * @param event Epoll event
+ * @return int 
+ */
+int	handle_stdin(struct s_janus_data *data, struct epoll_event *event);
 
 /**
  * @brief Main event loop for Janus

@@ -156,4 +156,14 @@ else
 	@find . -name '*.gcno' -delete
 endif
 
-.PHONY: all clean fclean re  submodule-status install-submodules pull-submodules pre post coverage
+
+test_fifo: JANUS
+	@set -e; \
+	FIFO="janus.fifo"; \
+	if [ -p "$$FIFO" ]; then rm -f "$$FIFO"; fi; \
+	mkfifo "$$FIFO"; \
+	trap 'rm -f "$$FIFO"' EXIT INT TERM; \
+	echo "Starting JANUS with stdin redirected from $$FIFO"; \
+	./JANUS < "$$FIFO"
+
+.PHONY: all clean fclean re  submodule-status install-submodules pull-submodules pre post coverage test_fifo

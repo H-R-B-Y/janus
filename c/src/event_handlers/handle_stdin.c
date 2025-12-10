@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/08 21:14:40 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/09 11:28:25 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/10 11:31:16 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -18,7 +18,9 @@ int	unlock_display(struct s_janus_data *janus, void *data)
 {
 	(void)data;
 	// This will unlock the display after a message hsa been displayed
-	janus->message_scheduled = 0;
+	if (janus->message_scheduled > 0)
+		janus->message_scheduled--;
+	eventfd_write(janus->event_fd, 1);
 	return (0);
 }
 
@@ -39,21 +41,100 @@ int	handle_stdin_event(struct s_janus_data *janus, void *data)
 	return (0);
 }
 
+int	resize_scratch_buffer(struct s_janus_data *data, size_t new_size)
+{
+	char	*new_buffer;
+
+	if (!data)
+		return (perror("No data to resize scratch buffer"), 1);
+	new_buffer = realloc(data->scratch_buffer, new_size);
+	if (new_buffer == NULL)
+		return (perror("realloc"), 1);
+	data->scratch_buffer = new_buffer;
+	data->scratch_buffer_size = new_size;
+	return (0);
+}
+
+// TODO: this is not pretty, could use a refactor
 int	handle_stdin(struct s_janus_data *data, struct epoll_event *event)
 {
 	char	*str;
+	int		flag;
+	size_t	offset;
+	char	*nlpos;
 
 	if (!data || !event)
 		return (-1);
-	// Is get next line going to work here?
-	// it should because stdin is buffered by default on terminal device
-	// but we should probably write a specific reading funciton for this
-	// because we cannot garantee that the stdin filedes is going to be line buffered
-	// and if it isnt this is going to block the program.
-	str = get_next_line(STDIN_FILENO);
-	// What we should do is tokenise the string
-	// first two tokens should be font select and color?
-	// then after that there is a string, but we can do that later.
+	if (data->scratch_buffer == NULL)
+		return (fprintf(stderr, "Scratch buffer is NULL\n"), -1);
+	if ((nlpos = strchr(data->scratch_buffer, '\n')) != NULL)
+	{
+		*nlpos = '\0';
+		offset = nlpos - data->scratch_buffer + 1;
+		str = strdup(data->scratch_buffer);
+		if (!str)
+			return (perror("strdup"), -1);
+		memmove(data->scratch_buffer, data->scratch_buffer + offset, data->scratch_buffer_used - offset + 1);
+		data->scratch_buffer_used -= offset;
+		schedule_event(data, 1, handle_stdin_event, str, free);
+		data->message_scheduled += 1;
+		return (0);
+	}
+	while (1)
+	{
+		if (data->scratch_buffer_used >= data->scratch_buffer_size - 5)
+		{
+			if (resize_scratch_buffer(data, data->scratch_buffer_size * 2))
+				return (-1);
+		}
+		flag = read(
+			STDIN_FILENO,
+			data->scratch_buffer + data->scratch_buffer_used,
+			data->scratch_buffer_size - data->scratch_buffer_used - 1
+		);
+		if (flag > 0)
+		{
+			data->scratch_buffer_used += flag;
+			continue;
+		}
+		if (flag == 0)
+			break;
+		// flag < 0
+		if (errno == EINTR)
+			continue; // interrupted, retry
+		if (errno == EAGAIN || errno == EWOULDBLOCK)
+			break; // Non-blocking and no more data available now
+		perror("read");
+		return (-1);
+	}
+	data->scratch_buffer[data->scratch_buffer_used] = '\0';
+	if ((nlpos = strchr(data->scratch_buffer, '\n')) != NULL)
+	{
+		*nlpos = '\0';
+		offset = nlpos - data->scratch_buffer + 1;
+		str = strdup(data->scratch_buffer);
+		if (!str)
+			return (perror("strdup"), -1);
+		memmove(data->scratch_buffer, data->scratch_buffer + offset, data->scratch_buffer_used - offset + 1);
+		data->scratch_buffer_used -= offset;
+	}
+	else if (flag == 0)
+	{
+		// EOF on FIFO: keep FD registered so future writers can send data
+		// Only schedule if we actually have content
+		if (data->scratch_buffer_used > 0)
+		{
+			str = strdup(data->scratch_buffer);
+			if (!str)
+				return (perror("strdup"), -1);
+		}
+		else
+			return (0);
+		data->scratch_buffer[0] = '\0';
+		data->scratch_buffer_used = 0;
+	}
+	else
+		return (0);
 	schedule_event(data, 1, handle_stdin_event, str, free);
 	data->message_scheduled += 1;
 	return (0);

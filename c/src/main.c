@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 13:55:15 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/09 12:31:22 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/10 11:33:39 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,6 +14,8 @@
 
 int	deinit_process(struct s_janus_data *data)
 {
+	size_t	i;
+
 	if (data == NULL)
 		return (1);
 	if (data->netlink_socket && data->netlink_socket != -1)
@@ -24,6 +26,17 @@ int	deinit_process(struct s_janus_data *data)
 		close(data->signal_fd);
 	if (data->event_fd && data->event_fd != -1)
 		close(data->event_fd);
+	if (data->scratch_buffer)
+		free(data->scratch_buffer);
+	if (data->timerfd && data->timerfd != -1)
+		close(data->timerfd);
+	i = 0;
+	while (i < MAX_TIMER_EVENT)
+	{
+		if (data->timerwheel[i].valid && data->timerwheel[i].free_data)
+			data->timerwheel[i].free_data(data->timerwheel[i].data);
+		i++;
+	}
 #ifndef JANUS_TERMINAL_MODE
 	EPD_2in13_V4_Sleep();
 	DEV_Module_Exit();
@@ -106,6 +119,23 @@ int	setup_epoll(struct s_janus_data *data)
 	return (0);
 }
 
+int	setup_stdin(struct s_janus_data *data)
+{
+	if (!data)
+		return (dprintf(STDERR_FILENO, "No data to intialise stdin\n"), 1);
+	// Set stdin to non-blocking
+	if (fcntl(STDIN_FILENO, F_GETFL, 0) == -1)
+		return (perror("fcntl get stdin"), 1);
+	if (fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK) == -1)
+		return (perror("fcntl set stdin"), 1);
+	data->scratch_buffer_size = 1024;
+	data->scratch_buffer = calloc(data->scratch_buffer_size, sizeof(char));
+	data->scratch_buffer_used = 0;
+	if (data->scratch_buffer == NULL)
+		return (perror("calloc scratch buffer"), 1);
+	return (0);
+}
+
 int	register_epoll_events(struct s_janus_data *data)
 {
 	struct epoll_event event;
@@ -138,10 +168,7 @@ int	init_process(struct s_janus_data *data)
 	memset(data, 0, sizeof(struct s_janus_data));
 #ifndef JANUS_TERMINAL_MODE
 	if (DEV_Module_Init() != 0)
-	{
-		dprintf(STDERR_FILENO, "Failed to initialize hardware module\n");
-		return (1);
-	}
+		return (dprintf(STDERR_FILENO, "Failed to initialize hardware module\n"), 1);
 	EPD_2in13_V4_Init();
 	// Clear the display
 	EPD_2in13_V4_Clear();
@@ -163,6 +190,8 @@ int	init_process(struct s_janus_data *data)
 	if (setup_epoll(data))
 		return (1);
 	if (setup_timerfd(data))
+		return (1);
+	if (setup_stdin(data))
 		return (1);
 	if (register_epoll_events(data))
 		return (1);

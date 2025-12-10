@@ -6,7 +6,7 @@
 /*   By: hbreeze <hbreeze@student.42london.com>     +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2025/12/04 13:55:27 by hbreeze           #+#    #+#             */
-/*   Updated: 2025/12/09 11:28:21 by hbreeze          ###   ########.fr       */
+/*   Updated: 2025/12/10 11:54:28 by hbreeze          ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -69,8 +69,7 @@ but for now include them all.
 # include <net/if.h>
 # include <ifaddrs.h>
 # include <arpa/inet.h>
-
-# include "get_next_line.h"
+# include <errno.h>
 
 # ifndef TICK_SPEED
 /// @brief Tickspeed for the eventwheel in nanoseconds
@@ -150,17 +149,22 @@ static inline void	mark_interface_down(int *status, enum e_interface_status inte
 	if (status)
 		*status &= ~interface;
 }
-
+/// @brief Callback function type for timer wheel events
 typedef int	(*t_timerwheel_callback)(
 	struct s_janus_data *janus,
 	void *data
 );
 
+/// @brief Structure for a timer wheel event
 struct s_timerwheel_event
 {
+	/// @brief Validity flag for the event (valid means scheduled and not yet executed)
 	int						valid;
+	/// @brief Callback function to execute when the event triggers
 	t_timerwheel_callback	fn;
+	/// @brief User data to pass to the callback function
 	void					*data;
+	/// @brief Free function for the user data
 	void					(*free_data)(void *data);
 };
 
@@ -217,6 +221,13 @@ struct s_janus_data
 
 	/// @brief Number of events in the wheel
 	size_t						events_queued;
+
+	/// @brief Scratch buffer for stdin handling
+	char						*scratch_buffer;
+	/// @brief Size of the scratch buffer
+	size_t						scratch_buffer_size;
+	/// @brief Amount of data used in the scratch buffer
+	size_t						scratch_buffer_used;
 
 # ifndef JANUS_TERMINAL_MODE
 	/// @brief Buffer for e-paper display image
@@ -312,7 +323,16 @@ int	janus_run(struct s_janus_data *data);
  */
 int	scan_existing_interfaces(struct s_janus_data *data);
 
-
+/**
+ * @brief Schedule an event in the timer wheel
+ * 
+ * @param data Janus data structure
+ * @param after Number of ticks after which to execute the event
+ * @param fn Function to call when the event triggers
+ * @param event_data User data to pass to the callback
+ * @param free_data Free function for the user data
+ * @return int non-zero on error
+ */
 static inline int	schedule_event(
 	struct s_janus_data *data,
 	size_t after,
@@ -342,14 +362,13 @@ static inline int	schedule_event(
 		return (1);
 	data->timerwheel[idx] = (struct s_timerwheel_event){
 		.data = event_data, .free_data = free_data,
-		.fn = fn, .valid = 1};
+		.fn = fn, .valid = 1
+	};
 	if (data->events_queued == 0)
 	{
 		struct itimerspec spec = (struct itimerspec){
-			.it_interval.tv_sec = 1,
-			.it_interval.tv_nsec = 0,
-			.it_value.tv_sec = 1,
-			.it_value.tv_nsec = 0
+			.it_interval.tv_sec = 1, .it_interval.tv_nsec = 0,
+			.it_value.tv_sec = 1, .it_value.tv_nsec = 0
 		};
 		if (timerfd_settime(data->timerfd, 0, &spec, NULL) < 0)
 			return (perror("timerfd set time"), 1);
@@ -358,6 +377,16 @@ static inline int	schedule_event(
 	return (0);
 }
 
+/**
+ * @brief Handler for timer wheel events
+ * 
+ * This function is called when the timerfd signals that a tick has occurred.
+ * It processes any scheduled events in the timer wheel that are due to be executed.
+ * 
+ * @param data Janus data structure
+ * @param event Epoll event for the timer fd
+ * @return int non-zero on error
+ */
 int	handle_timer_wheel(
 	struct s_janus_data *data,
 	struct epoll_event *event

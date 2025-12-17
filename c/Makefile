@@ -71,14 +71,15 @@ service:
 		@echo "User=root" >> ./janus.service
 		@echo "WorkingDirectory=${PWD}" >> ./janus.service
 		@echo "# ExecStart opens FIFO RDWR to avoid startup blocking; stdout handled by StandardOutput" >> ./janus.service
-		@echo "ExecStart=/usr/bin/sh -c 'exec 3<>/tmp/janus.socket; exec /usr/bin/stdbuf -oL -eL ${PWD}/${NAME} <&3'" >> ./janus.service
+		@echo "ExecStart=/bin/sh -c 'exec 3<>/tmp/janus.socket; if command -v stdbuf >/dev/null 2>&1; then exec stdbuf -oL -eL ${PWD}/${NAME} <&3; else exec ${PWD}/${NAME} <&3; fi'" >> ./janus.service
 		@echo "# Ensure fresh FIFO each start" >> ./janus.service
 		@echo "ExecStartPre=/usr/bin/sh -c '[ -p /tmp/janus.socket ] && rm -f /tmp/janus.socket || true'" >> ./janus.service
 		@echo "ExecStartPre=/usr/bin/mkfifo -m 0666 /tmp/janus.socket" >> ./janus.service
 		@echo "# Ensure log file exists and is readable" >> ./janus.service
-		@echo "ExecStartPre=/usr/bin/touch /var/log/janus.log" >> ./janus.service
-		@echo "ExecStartPre=/usr/bin/chmod 0644 /var/log/janus.log" >> ./janus.service
+		@echo "ExecStartPre=/bin/sh -c 'touch /var/log/janus.log'" >> ./janus.service
+		@echo "ExecStartPre=/bin/sh -c 'chmod 0644 /var/log/janus.log'" >> ./janus.service
 		@echo "ExecStopPost=/usr/bin/rm -f /tmp/janus.socket" >> ./janus.service
+		@echo "ExecStopPost=/bin/sh -c 'rm -f /tmp/janus.socket'" >> ./janus.service
 		@echo "StandardInput=null" >> ./janus.service
 		@echo "StandardOutput=append:/var/log/janus.log" >> ./janus.service
 		@echo "StandardError=journal" >> ./janus.service

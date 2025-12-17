@@ -35,8 +35,6 @@ SRCS			:= \
 				./src/event_handlers/handle_signal_event.c \
 				./src/event_handlers/handle_event_fd_event.c \
 				./src/event_handlers/timer_wheel.c \
-				./src/get_next_line/get_next_line_utils.c \
-				./src/get_next_line/get_next_line.c \
 				./src/event_handlers/handle_stdin.c \
 				\
 
@@ -61,62 +59,52 @@ terminal:
 		$(MAKE) TERMINAL_MODE=1
 
 service:
-		@rm ./janus.service || true
+		@rm -rf ./janus.service || true
 		@touch ./janus.service
 		@echo "[Unit]" >> ./janus.service
 		@echo "Description=JANUS" >> ./janus.service
 		@echo "After=network-online.target" >> ./janus.service
 		@echo "Wants=network-online.target" >> ./janus.service
-		@echo "Requires=janus.socket" >> ./janus.service
 		@echo "" >> ./janus.service
 		@echo "[Service]" >> ./janus.service
-		@echo "Type=oneshot" >> ./janus.service
+		@echo "Type=simple" >> ./janus.service
 		@echo "User=root" >> ./janus.service
 		@echo "WorkingDirectory=${PWD}" >> ./janus.service
-		@echo "ExecStart=${PWD}/${NAME}" >> ./janus.service
-		@echo "RemainAfterExit=yes" >> ./janus.service
-		@echo "StandardOutput=journal" >> ./janus.service
+		@echo "# ExecStart opens FIFO RDWR to avoid startup blocking; stdout handled by StandardOutput" >> ./janus.service
+		@echo "ExecStart=/usr/bin/sh -c 'exec 3<>/tmp/janus.socket; exec /usr/bin/stdbuf -oL -eL ${PWD}/${NAME} <&3'" >> ./janus.service
+		@echo "# Ensure fresh FIFO each start" >> ./janus.service
+		@echo "ExecStartPre=/usr/bin/sh -c '[ -p /tmp/janus.socket ] && rm -f /tmp/janus.socket || true'" >> ./janus.service
+		@echo "ExecStartPre=/usr/bin/mkfifo -m 0666 /tmp/janus.socket" >> ./janus.service
+		@echo "# Ensure log file exists and is readable" >> ./janus.service
+		@echo "ExecStartPre=/usr/bin/touch /var/log/janus.log" >> ./janus.service
+		@echo "ExecStartPre=/usr/bin/chmod 0644 /var/log/janus.log" >> ./janus.service
+		@echo "ExecStopPost=/usr/bin/rm -f /tmp/janus.socket" >> ./janus.service
+		@echo "StandardInput=null" >> ./janus.service
+		@echo "StandardOutput=append:/var/log/janus.log" >> ./janus.service
 		@echo "StandardError=journal" >> ./janus.service
-		@echo "StandardInput=socket" >> ./janus.service
+		@echo "Restart=on-failure" >> ./janus.service
+		@echo "RestartSec=1s" >> ./janus.service
+		@echo "TimeoutStartSec=infinity" >> ./janus.service
 		@echo "" >> ./janus.service
 		@echo "[Install]" >> ./janus.service
 		@echo "WantedBy=multi-user.target" >> ./janus.service
 
-socket:
-		@rm ./janus.socket || true
-		@touch ./janus.socket
-		@echo "[Unit]" >> ./janus.socket
-		@echo "Description=JANUS Socket" >> ./janus.socket
-		@echo "" >> ./janus.socket
-		@echo "[Socket]" >> ./janus.socket
-		@echo "ListenFIFO=/tmp/janus.socket" >> ./janus.socket
-		@echo "SocketMode=0666" >> ./janus.socket
-		@echo "" >> ./janus.socket
-		@echo "[Install]" >> ./janus.socket
-		@echo "WantedBy=sockets.target" >> ./janus.socket
-
-install: service socket
+install: service
 		@$(MAKE)
 		# Install
 		@echo "The following needs to be run with sudo:"
 		sudo cp ./janus.service /etc/systemd/system/janus.service
-		sudo cp ./janus.socket /etc/systemd/system/janus.socket
 		sudo systemctl daemon-reload
-		sudo systemctl enable janus.socket
-		sudo systemctl start janus.socket
-		sudo systemctl stop janus.service
 		sudo systemctl enable janus.service
-		sudo systemctl start janus.service &
+		sudo systemctl start janus.service
 
 uninstall:
 		@rm -rf ./janus.service
-		sudo systemctl stop janus.service
-		sudo systemctl stop janus.socket
-		sudo systemctl disable janus.socket
-		sudo rm -rf /etc/systemd/system/janus.socket
-		sudo systemctl disable janus.service
-		sudo rm -rf /etc/systemd/system/janus.service
-		sudo systemctl daemon-reload
+		sudo systemctl stop janus.service || true
+		sudo systemctl stop janus.socket || true
+		sudo systemctl disable janus.service || true
+		sudo rm -rf /etc/systemd/system/janus.service || true
+		sudo systemctl daemon-reload || true
 
 %.o: %.c
 		@$(CC) $(CFLAGS) -o $@ -c $< $(INCLUDES)
